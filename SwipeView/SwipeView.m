@@ -35,7 +35,6 @@
 #import <objc/message.h>
 
 
-#import <Availability.h>
 #if !__has_feature(objc_arc)
 #error This class requires automatic reference counting
 #endif
@@ -117,6 +116,9 @@
     _scrollOffset = 0.0f;
     _currentItemIndex = 0;
     _numberOfItems = 0;
+
+    _pagePadding = 10;
+    _numberOfVisibleItems = -1;
     
     UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTap:)];
     tapGesture.delegate = self;
@@ -374,7 +376,7 @@
 
 - (void)updateScrollViewDimensions
 {
-    CGRect frame = self.bounds;
+    CGRect frame = self.frame;
     CGSize contentSize = frame.size;
     switch (_alignment)
     {
@@ -489,30 +491,40 @@
     if (self.window)
     {
         CGPoint center = view.center;
+        CGSize itemSize = view.frame.size;
         if (_vertical)
         {
-            center.y = ([self offsetForItemAtIndex:index] + 0.5f) * _itemSize.height + _scrollView.contentOffset.y;
+            center.y = ([self offsetForItemAtIndex:index] + 0.5f) * itemSize.height + _scrollView.contentOffset.y;
         }
         else
         {
-            center.x = ([self offsetForItemAtIndex:index] + 0.5f) * _itemSize.width + _scrollView.contentOffset.x;
+            center.x = ([self offsetForItemAtIndex:index] + 0.5f) * itemSize.width + _scrollView.contentOffset.x;
         }
-        
+
         BOOL disableAnimation = !CGPointEqualToPoint(center, view.center);
         BOOL animationEnabled = [UIView areAnimationsEnabled];
         if (disableAnimation && animationEnabled) [UIView setAnimationsEnabled:NO];
-        
+
         if (_vertical)
         {
-            view.center = CGPointMake(_scrollView.frame.size.width/2.0f, center.y);
+            view.center = CGPointMake((_scrollView.frame.size.width/2.0f)+_scrollView.frame
+                    .origin.x, center.y+_pagePadding);
         }
         else
         {
-            view.center = CGPointMake(center.x, _scrollView.frame.size.height/2.0f);
+            view.center = CGPointMake(center.x+_pagePadding, (_scrollView.frame.size.height/2.0f)+
+                    _scrollView.frame.origin.y);
         }
-        
-        view.bounds = CGRectMake(0.0f, 0.0f, _itemSize.width, _itemSize.height);
-        
+
+        view.bounds = CGRectMake(0.0f, 0.0f, itemSize.width, itemSize.height);
+        if (_vertical) {
+            view.frame = CGRectMake(view.bounds.origin.x, view.frame.origin.y,
+                    view.frame.size.width, view.frame.size.height);
+        } else {
+            view.frame = CGRectMake(view.frame.origin.x, view.bounds.origin.y,
+                    itemSize.width, itemSize.height);
+        }
+
         if (disableAnimation && animationEnabled) [UIView setAnimationsEnabled:YES];
     }
 }
@@ -850,7 +862,7 @@
     }
     
     [self setItemView:view forIndex:index];
-    [self setFrameForView:view atIndex:index];
+//    [self setFrameForView:view atIndex:index];
     view.userInteractionEnabled = YES;
     [_scrollView addSubview:view];
     
@@ -886,19 +898,22 @@
         CGFloat x = _vertical? _scrollView.frame.origin.y: _scrollView.frame.origin.x;
         
         //calculate range
+        NSInteger numberOfVisibleItems = _numberOfVisibleItems;
         CGFloat startOffset = [self clampedOffset:_scrollOffset - x / itemWidth];
         NSInteger startIndex = floorf(startOffset);
-        NSInteger numberOfVisibleItems = ceilf(width / itemWidth + (startOffset - startIndex));
-        if (_defersItemViewLoading)
-        {
-            startIndex = _currentItemIndex - ceilf(x / itemWidth) - 1;
-            numberOfVisibleItems = ceilf(width / itemWidth) + 3;
+        if (numberOfVisibleItems<0) {
+            numberOfVisibleItems = ceilf(width / itemWidth + (startOffset - startIndex));
+            if (_defersItemViewLoading)
+            {
+                startIndex = _currentItemIndex - ceilf(x / itemWidth) - 1;
+                numberOfVisibleItems = ceilf(width / itemWidth) + 3;
+            }
         }
-        
+
         //create indices
         numberOfVisibleItems = MIN(numberOfVisibleItems, _numberOfItems);
         NSMutableSet *visibleIndices = [NSMutableSet setWithCapacity:numberOfVisibleItems];
-        for (NSInteger i = 0; i < numberOfVisibleItems; i++)
+        for (NSInteger i = -1; i < numberOfVisibleItems-1; i++)
         {
             NSInteger index = [self clampedIndex:i + startIndex];
             [visibleIndices addObject:@(index)];
@@ -925,6 +940,7 @@
                 [self loadViewAtIndex:[number integerValue]];
             }
         }
+        [self updateScrollViewDimensions];
     }
 }
 

@@ -81,6 +81,9 @@ SwipeViewAlignment;
 @property (nonatomic, assign) BOOL defersItemViewLoading;
 @property (nonatomic, assign, getter = isVertical) BOOL vertical;
 
+@property (nonatomic, assign) NSInteger pagePadding;
+@property (nonatomic, assign) NSInteger numberOfVisibleItems;
+
 - (void)reloadData;
 - (void)reloadItemAtIndex:(NSInteger)index;
 - (void)scrollByOffset:(CGFloat)offset duration:(NSTimeInterval)duration;
