@@ -1099,6 +1099,12 @@
     }
 }
 
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
+    CGPoint superViewPointOfTouch = [self convertPoint:point toView:self.superview];
+    CGRect scrollContentArea = CGRectMake(0, self.frame.origin.y, self.superview.frame.size.width,
+            self.frame.size.height);
+    return CGRectContainsPoint(scrollContentArea, superViewPointOfTouch);
+}
 
 #pragma mark -
 #pragma mark UIScrollViewDelegate methods
