@@ -946,8 +946,12 @@
 
 - (void)reloadItemAtIndex:(NSInteger)index
 {
+    int currentItemNum = _numberOfItems;
+    if (_numberOfItems!=[_dataSource numberOfItemsInSwipeView:self]) {
+        [self updateItemSizeAndCount];
+    }
     //if view is visible
-    if ([self itemViewAtIndex:index])
+    if ([self itemViewAtIndex:index]||_numberOfItems!=currentItemNum)
     {
         //reload view
         [self loadViewAtIndex:index];
@@ -997,6 +1001,21 @@
         return _scrollView;
     }
     return view;
+}
+
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
+    CGRect pointBounds = self.frame;
+    if (self.clipsToBounds) {
+        if (_vertical) {
+           pointBounds = CGRectMake(self.frame.origin.x, 0, self.frame.size.width,
+                self.superview.frame.size.height);
+        } else {
+           pointBounds = CGRectMake(0, self.frame.origin.y, self.superview.frame.size.width,
+                self.frame.size.height);
+        }
+    }
+    CGPoint superViewPointOfTouch = [self convertPoint:point toView:self.superview];
+    return CGRectContainsPoint(pointBounds, superViewPointOfTouch);
 }
 
 - (void)didMoveToSuperview
@@ -1097,13 +1116,6 @@
     {
         [_delegate swipeView:self didSelectItemAtIndex:index];
     }
-}
-
-- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
-    CGPoint superViewPointOfTouch = [self convertPoint:point toView:self.superview];
-    CGRect scrollContentArea = CGRectMake(0, self.frame.origin.y, self.superview.frame.size.width,
-            self.frame.size.height);
-    return CGRectContainsPoint(scrollContentArea, superViewPointOfTouch);
 }
 
 #pragma mark -
