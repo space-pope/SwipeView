@@ -1005,7 +1005,7 @@
 
 - (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
     CGRect pointBounds = self.frame;
-    if (self.clipsToBounds) {
+    if (!self.clipsToBounds) {
         if (_vertical) {
            pointBounds = CGRectMake(self.frame.origin.x, 0, self.frame.size.width,
                 self.superview.frame.size.height);
